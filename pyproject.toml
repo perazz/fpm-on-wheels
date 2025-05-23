@@ -38,12 +38,13 @@ bug-tracker = "https://github.com/fortran-lang/fpm/issues"
 write_to = "src/fpm/_version.py"
 
 [tool.cibuildwheel]
-build = "cp310-*"
+# Build wheels for Python 3.10, 3.11, and 3.12
+build = "cp312-*"
 build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-environment = { CC = "clang", CXX = "clang++", FC = "gfortran-11" }
+environment = { CC = "clang", CXX = "clang++", FC = "gfortran-12" }
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx_arm64"
