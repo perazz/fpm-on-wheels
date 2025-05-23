@@ -10,7 +10,7 @@ GCC_SPEC="14.*"                          # accept any 14-series build
 export PLAT
 
 ################################################################################
-# 1.  Miniforge bootstrap (� 35 MB)
+# 1.  Miniforge bootstrap (≈ 35 MB)
 ################################################################################
 MFROOT="$HOME/mf"
 if [[ ! -d "$MFROOT" ]]; then
@@ -83,20 +83,12 @@ if [[ "$type" == "cross" ]]; then
   done
 fi
 
-# remove bogus -lm from gfortran specs 
-spec="$GCCDIR/libgfortran.spec"
-if grep -q '\-lm' "$spec"; then
-  # back-up once, patch in place
-  cp "$spec" "$spec.bak"
-  sed -i '' 's/ -lm/ -lSystem/g' "$spec"
-fi
-
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
 ################################################################################
 # 5.  Expose compiler to scikit-build
 ################################################################################
-ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple�s system ld
+ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
 export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
@@ -116,9 +108,17 @@ sudo ln -sf "$FC" /usr/local/bin/gfortran
 echo "FC=$FC"           >> "$GITHUB_ENV"
 echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 
-# Record SDK path for the build that follows
-echo "SDKROOT=$SDKROOT" >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
-echo "CMAKE_OSX_SYSROOT=$SDKROOT" >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
+# ────────────────────────────────────────────────────────────────────────────
+# Record SDK path for cibuildwheel's build phase
+# (the variable CIBW_ENVIRONMENT_OUTPUT_PATH exists only in >= 2.18;
+# guard with -n to stay compatible with older releases)
+# ────────────────────────────────────────────────────────────────────────────
+if [[ -n "${CIBW_ENVIRONMENT_OUTPUT_PATH:-}" ]]; then
+  {
+    echo "SDKROOT=$SDKROOT"
+    echo "CMAKE_OSX_SYSROOT=$SDKROOT"
+  } >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
+fi
 
 ################################################################################
 # 6.  Sanity check
