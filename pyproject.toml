@@ -43,7 +43,7 @@ build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-environment = { CC = "clang", CXX = "clang++", FC = "gfortran-13", MACOSX_DEPLOYMENT_TARGET = "13.0"}
+environment = { CC = "clang", CXX = "clang++", FC = "gfortran-12", MACOSX_DEPLOYMENT_TARGET = "13.0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx_arm64"
@@ -54,7 +54,7 @@ CC = "clang"
 CXX = "clang++"
 FC = "/opt/gfortran-darwin-arm64-cross/bin/arm64-apple-darwin20.0.0-gfortran"
 LDFLAGS = "-L/opt/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/11.3.0 -Wl,-rpath,/opt/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/11.3.0"
-MACOSX_DEPLOYMENT_TARGET = "11.0"
+MACOSX_DEPLOYMENT_TARGET = "13.0"
 CMAKE_VERBOSE_MAKEFILE = "ON"
 
 [tool.cibuildwheel.windows]
