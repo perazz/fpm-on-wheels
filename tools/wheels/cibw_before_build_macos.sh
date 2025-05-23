@@ -100,7 +100,7 @@ if ! grep -q -- "-Wl,-syslibroot," "$spec"; then
   # turn each " -lm" into " -Wl,-syslibroot,<sdk> -lSystem"
   sed -i '' "s| -lm| -Wl,-syslibroot,$SDKROOT -lSystem|g" "$spec"
 fi
-sed -i '' 's|-Wl,-syslibroot|-syslibroot|g' "$spec"
+sed -i '' 's/-Wl,-syslibroot,/-syslibroot /g' "$spec"
 
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
