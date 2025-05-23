@@ -130,15 +130,20 @@ if [ "$(uname)" = "Darwin" ]; then
     # ---- download & verify --------------------------------------------------
     function _fetch_gcc_source {
         [ -s "${GCC_TARBALL}" ] || curl -L -o "${GCC_TARBALL}" "${GCC_URL}"
-        # Store the SHA1 after first download so subsequent CI runs verify reproducibly
+
         local sha_file="${GCC_TARBALL}.sha1"
         if [ ! -f "${sha_file}" ]; then
             shasum "${GCC_TARBALL}" | cut -d' ' -f1 > "${sha_file}"
         fi
         echo "$(cat "${sha_file}")  ${GCC_TARBALL}" | shasum -c -
-        tar -xf "${GCC_TARBALL}"
-    }
 
+        # Unpack only once, renaming the top-level dir to gcc-14.3.0
+        if [ ! -d "gcc-${GCC_VERSION}" ]; then
+            mkdir "gcc-${GCC_VERSION}"
+            tar -xf "${GCC_TARBALL}" --strip-components=1 -C "gcc-${GCC_VERSION}"
+        fi
+    }    
+        
     # ---- build helpers ------------------------------------------------------
     # $1 = arch (arm64 / x86_64) ; $2 = native|cross
     function _build_gcc {
