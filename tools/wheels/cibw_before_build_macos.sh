@@ -14,7 +14,7 @@ MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download
 curl -sL "$MINIFORGE_URL" -o miniforge.sh
 bash miniforge.sh -b -p "$HOME/mf"
 eval "$("$HOME/mf/bin/conda" shell.bash hook)"
-mamba config --quiet --set always_yes yes
+mamba config --set always_yes true --quiet
 
 ###############################################################################
 # 1.  decide native vs cross
