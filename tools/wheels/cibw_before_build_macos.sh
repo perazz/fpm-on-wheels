@@ -10,7 +10,7 @@ GCC_SPEC="14.*"                          # accept any 14-series build
 export PLAT
 
 ################################################################################
-# 1.  Miniforge bootstrap (≈ 35 MB)
+# 1.  Miniforge bootstrap (� 35 MB)
 ################################################################################
 MFROOT="$HOME/mf"
 if [[ ! -d "$MFROOT" ]]; then
@@ -67,15 +67,20 @@ if [[ "$type" == "cross" ]]; then
   done
 fi
 
-# ⚠️ libgfortran.spec is *not* a Mach-O binary – skip install_name_tool
-# install_name_tool -delete_rpath "$PREFIX/lib" "$GCCDIR/libgfortran.spec" || true
+# remove bogus -lm from gfortran specs 
+spec="$GCCDIR/libgfortran.spec"
+if grep -q '\-lm' "$spec"; then
+  # back-up once, patch in place
+  cp "$spec" "$spec.bak"
+  sed -i '' 's/ -lm/ -lSystem/g' "$spec"
+fi
 
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
 ################################################################################
 # 5.  Expose compiler to scikit-build
 ################################################################################
-ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
+ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple�s system ld
 export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
