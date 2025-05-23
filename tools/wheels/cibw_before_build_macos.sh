@@ -78,18 +78,34 @@ echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
 echo "FFLAGS=$FFLAGS"   >> "$GITHUB_ENV"
 
 PREFIX="$CONDA_PREFIX"
+DRIVER_DIR="$PREFIX/bin"
+
 if [[ "$PLAT" == "arm64" ]]; then
-  TRIPLE="aarch64-apple-darwin${kern_ver}"   # GCC’s naming
+
+  for candidate in \
+    "arm64-apple-darwin${kern_ver}-gfortran" \
+    "aarch64-apple-darwin${kern_ver}-gfortran" \
+  ; do  
+      if [[ -x "${DRIVER_DIR}/${candidate}" ]]; then
+        TRIPLE="${candidate}"
+        break
+      fi
+  done  
+  
 else
   TRIPLE="x86_64-apple-darwin${kern_ver}"
 fi
 
 # First make sure that driver exists (cross build only)
-FC_DRIVER="$PREFIX/bin/${TRIPLE}-gfortran"
-[[ -x "$FC_DRIVER" ]] || {
-  echo "ERROR: cross-compiler driver $FC_DRIVER not found"
+FC_DRIVER="${DRIVER_DIR}/${candidate}"
+
+if [[ -z "$FC_DRIVER" ]]; then
+  echo "ERROR: cross-compiler driver not found in $DRIVER_DIR"
+  echo "Contents of $DRIVER_DIR:"
+  ls -1 "$DRIVER_DIR"
   exit 1
-}
+fi
+
 export FC="$FC_DRIVER"
 
 ###############################################################################
