@@ -10,7 +10,7 @@ GCC_SPEC="14.*"                          # accept any 14-series build
 export PLAT
 
 ################################################################################
-# 1.  Miniforge bootstrap (Å 35 MB)
+# 1.  Miniforge bootstrap (â‰ˆ 35 MB)
 ################################################################################
 MFROOT="$HOME/mf"
 if [[ ! -d "$MFROOT" ]]; then
@@ -20,10 +20,9 @@ if [[ ! -d "$MFROOT" ]]; then
   bash miniforge.sh -b -p "$MFROOT"
 fi
 eval "$("$MFROOT/bin/conda" shell.bash hook)"
-# no `mamba config` needed Ð we pass `-y` to every call
 
 ################################################################################
-# 2.  Determine host / build sub-dirs and Darwin triplet
+# 2.  Determine host/build sub-dirs and Darwin triplet
 ################################################################################
 if [[ "$PLAT" == "x86_64" ]]; then
   host_subdir="osx-64";   kern_ver=13.4.0
@@ -68,27 +67,33 @@ if [[ "$type" == "cross" ]]; then
   done
 fi
 
-install_name_tool -delete_rpath "$PREFIX/lib" "$GCCDIR/libgfortran.spec" || true
+# âš ï¸ libgfortran.spec is *not* a Mach-O binary â€“ skip install_name_tool
+# install_name_tool -delete_rpath "$PREFIX/lib" "$GCCDIR/libgfortran.spec" || true
+
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
 ################################################################################
 # 5.  Expose compiler to scikit-build
 ################################################################################
-
-ln -sf /usr/bin/ld "$GCCDIR/ld"          # use AppleÕs system ld
+ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Appleâ€™s system ld
 export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
-echo "FC=$FC"           >> "$GITHUB_ENV"
-echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 
+# LDFLAGS must exist even in the native job
+LDFLAGS=""
 if [[ "$type" == "cross" ]]; then
-  export LDFLAGS="-L$GCCDIR -Wl,-rpath,$GCCDIR"
+  LDFLAGS="-L$GCCDIR -Wl,-rpath,$GCCDIR"
 else
   sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
 fi
+export LDFLAGS
 
-# make CMake happy in all subprocesses
+# CMake autoconf helpers
 sudo ln -sf "$FC" /usr/local/bin/gfortran
+
+# hand back to later GitHub Actions steps
+echo "FC=$FC"           >> "$GITHUB_ENV"
+echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 
 ################################################################################
 # 6.  Sanity check
@@ -98,4 +103,3 @@ echo "FC      = $FC"
 echo "LDFLAGS = ${LDFLAGS:-<none>}"
 
 "$FC" -v | head -n 1 || { echo "gfortran failed to start"; exit 99; }
-
