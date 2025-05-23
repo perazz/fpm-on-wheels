@@ -61,7 +61,6 @@ export FFLAGS="-isysroot $SDKROOT ${FFLAGS:-}"
 echo "CFLAGS=$CFLAGS"   >> "$GITHUB_ENV"
 echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
 echo "FFLAGS=$FFLAGS"   >> "$GITHUB_ENV"
-echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 
 PREFIX="$CONDA_PREFIX"
 TRIPLE="${PLAT}-apple-darwin${kern_ver}"
@@ -101,6 +100,7 @@ if ! grep -q -- "-Wl,-syslibroot," "$spec"; then
   # turn each " -lm" into " -Wl,-syslibroot,<sdk> -lSystem"
   sed -i '' "s| -lm| -Wl,-syslibroot,$SDKROOT -lSystem|g" "$spec"
 fi
+sed -i '' 's|-Wl,-syslibroot|-syslibroot|g' "$spec"
 
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
@@ -112,7 +112,6 @@ export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
 # LDFLAGS must exist even in the native job
-LDFLAGS="-Wl,-syslibroot,$SDKROOT"
 LDFLAGS="-syslibroot $SDKROOT"              
 if [[ "$type" == "cross" ]]; then
   LDFLAGS+=" -L$GCCDIR -rpath $GCCDIR"      
