@@ -131,31 +131,30 @@ sed -i '' 's/-Wl,-syslibroot,/-syslibroot /g' "$spec"
 
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
+###############################################################################
+# 4c.  Cross wrapper that injects “-arch arm64” on every invocation
+###############################################################################
+if [[ "$type" == "cross" ]]; then
+  WRAPPER="$PREFIX/bin/gfortran-arm64"
+  cat > "$WRAPPER" <<'EOF'
+#!/usr/bin/env bash
+# Forward to the host gfortran but force Apple-Silicon output
+exec "$(dirname "$0")/gfortran" -arch arm64 "$@"
+EOF
+  chmod +x "$WRAPPER"
+  export FC="$WRAPPER"
+fi
+
 ################################################################################
 # 5.  Expose compiler to scikit-build
 ################################################################################
 ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
 export PATH="$PREFIX/bin:$PATH"
-export FC="$PREFIX/bin/${TRIPLE}-gfortran"
-
-# Select the correct Fortran compiler
-if [[ "$type" == "cross" ]]; then
-  # GCC >=12 uses “arm64”, older builds use “aarch64”
-  for pat in "arm64-apple-darwin${kern_ver}-gfortran" \
-             "aarch64-apple-darwin${kern_ver}-gfortran"; do
-    if [[ -x "$PREFIX/bin/$pat" ]]; then
-      export FC="$PREFIX/bin/$pat"
-      break
-    fi
-  done
-  [[ -n "${FC:-}" ]] || { echo "cross driver not found"; exit 1; }
-else
-  export FC="$PREFIX/bin/gfortran"          # native job
-fi
 
 # CMake autoconf helpers
-sudo ln -sf "$FC" /usr/local/bin/gfortran
+sudo ln -sf "$FC" /usr/local/bin/gfortran   # CMake will call this path
 echo "FC=$FC" >> "$GITHUB_ENV"
+
 
 # LDFLAGS must exist even in the native job
 LDFLAGS="-syslibroot $SDKROOT"              
