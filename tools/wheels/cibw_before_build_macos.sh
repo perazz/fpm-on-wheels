@@ -24,13 +24,20 @@ eval "$("$MFROOT/bin/conda" shell.bash hook)"
 ################################################################################
 # 2.  Determine host/build sub-dirs and Darwin triplet
 ################################################################################
+
+# host_subdir = *target* arch  (libs that will end up in the wheel)
 if [[ "$PLAT" == "x86_64" ]]; then
   host_subdir="osx-64";   kern_ver=13.4.0
 else
   host_subdir="osx-arm64"; kern_ver=20.0.0
 fi
 
-build_subdir=$([[ "$PLAT" == "x86_64" ]] && echo "osx-64" || echo "osx-arm64")
+# build_subdir = *runner* arch (the compiler we can execute right now)
+if [[ "$(uname -m)" == "x86_64" ]]; then
+  build_subdir="osx-64"
+else
+  build_subdir="osx-arm64"
+fi
 type=$([[ "$PLAT" == "$(uname -m)" ]] && echo "native" || echo "cross")
 ENVNAME="gfortran-darwin-${PLAT}-${type}"
 
@@ -72,12 +79,23 @@ echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
 echo "FFLAGS=$FFLAGS"   >> "$GITHUB_ENV"
 
 PREFIX="$CONDA_PREFIX"
-TRIPLE="${PLAT}-apple-darwin${kern_ver}"
+if [[ "$PLAT" == "arm64" ]]; then
+  TRIPLE="aarch64-apple-darwin${kern_ver}"   # GCC’s naming
+else
+  TRIPLE="x86_64-apple-darwin${kern_ver}"
+fi
+
+# First make sure that driver exists (cross build only)
+FC_DRIVER="$PREFIX/bin/${TRIPLE}-gfortran"
+[[ -x "$FC_DRIVER" ]] || {
+  echo "ERROR: cross-compiler driver $FC_DRIVER not found"
+  exit 1
+}
+export FC="$FC_DRIVER"
 
 ###############################################################################
 # 3b.  Locate GCC versioned lib directory 
 ###############################################################################
-FC="$PREFIX/bin/${TRIPLE}-gfortran"        # we know this path already
 GCCDIR="$(dirname "$("$FC" -print-libgcc-file-name)")"
 
 # sanity-check
@@ -133,6 +151,8 @@ export LDFLAGS
 sudo ln -sf "$FC" /usr/local/bin/gfortran
 
 # hand back to later GitHub Actions steps
+echo "CMAKE_OSX_ARCHITECTURES=$PLAT" >> "$GITHUB_ENV"
+echo "CMAKE_SYSTEM_PROCESSOR=$PLAT"   >> "$GITHUB_ENV"
 echo "FC=$FC"           >> "$GITHUB_ENV"
 echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 
