@@ -165,6 +165,7 @@ if [ "$(uname)" = "Darwin" ]; then
             --target="${host}" \
             --enable-languages=c,fortran \
             --disable-multilib \
+            --disable-nls \
             --with-system-zlib \
             --with-gmp=$(brew --prefix gmp 2>/dev/null || echo /opt/homebrew/opt/gmp) \
             --with-mpfr=$(brew --prefix mpfr 2>/dev/null || echo /opt/homebrew/opt/mpfr) \
