@@ -101,9 +101,9 @@ export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
 # LDFLAGS must exist even in the native job
-LDFLAGS=""
+LDFLAGS="-Wl,-syslibroot,$SDKROOT"
 if [[ "$type" == "cross" ]]; then
-  LDFLAGS="-L$GCCDIR -Wl,-rpath,$GCCDIR"
+  LDFLAGS+=" -L$GCCDIR -Wl,-rpath,$GCCDIR"
 else
   sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
 fi
@@ -115,6 +115,10 @@ sudo ln -sf "$FC" /usr/local/bin/gfortran
 # hand back to later GitHub Actions steps
 echo "FC=$FC"           >> "$GITHUB_ENV"
 echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
+
+# Record SDK path for the build that follows
+echo "SDKROOT=$SDKROOT" >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
+echo "CMAKE_OSX_SYSROOT=$SDKROOT" >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
 
 ################################################################################
 # 6.  Sanity check
