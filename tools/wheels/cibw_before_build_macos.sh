@@ -74,11 +74,7 @@ install_name_tool -delete_rpath "$PREFIX/lib" "$GCCDIR/libgfortran.spec" || true
 ################################################################################
 # 5.  Expose compiler to scikit-build
 ################################################################################
-ln -sf /usr/bin/ld "$GCCDIR/ld"               # use Apple ld
-export PATH="$PREFIX/bin:$PATH"
-export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
-# 4.  expose the compiler for scikit-build
 ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
 export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
@@ -91,11 +87,15 @@ else
   sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
 fi
 
+# make CMake happy in all subprocesses
+sudo ln -sf "$FC" /usr/local/bin/gfortran
+
 ################################################################################
 # 6.  Sanity check
 ################################################################################
 echo "### sanity check"
 echo "FC      = $FC"
 echo "LDFLAGS = ${LDFLAGS:-<none>}"
+
 "$FC" -v | head -n 1 || { echo "gfortran failed to start"; exit 99; }
 
