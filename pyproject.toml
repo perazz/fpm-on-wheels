@@ -43,7 +43,7 @@ build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-# only the tools that are the same on both arches
+before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
 environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [tool.cibuildwheel.windows]

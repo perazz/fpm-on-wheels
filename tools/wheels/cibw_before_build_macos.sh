@@ -88,5 +88,9 @@ else
   sudo cp "$PREFIX"/lib/libgcc_s*.dylib /usr/local/lib/
 fi
 
-echo "@@@ FC:" "$FC"
+echo "### sanity check"
+echo "@@@ FC     : ${FC:-<unset>}"
 echo "@@@ LDFLAGS:" "${LDFLAGS:-<none>}"
+echo "@@@ PATH   : $PATH"
+
+"$FC" -v || { echo "### gfortran did not start"; exit 99; }
