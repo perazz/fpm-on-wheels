@@ -37,8 +37,11 @@ ENVNAME="gfortran-darwin-${PLAT}-${type}"
 ###############################################################################
 # 2b.  Make sure the env name is clean
 ###############################################################################
-
-mamba env remove -y -n "$ENVNAME" || true   
+ENVPATH="$MFROOT/envs/$ENVNAME"
+if [[ -d "$ENVPATH" && ! -f "$ENVPATH/conda-meta/history" ]]; then
+  echo "Removing stale non-conda folder at $ENVPATH"
+  rm -rf "$ENVPATH"
+fi
 
 ################################################################################
 # 3.  Create tool-chain environment
