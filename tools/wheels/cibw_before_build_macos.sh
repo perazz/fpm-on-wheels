@@ -83,6 +83,14 @@ if [[ "$type" == "cross" ]]; then
   done
 fi
 
+# remove bogus -lm from gfortran specs 
+spec="$GCCDIR/libgfortran.spec"
+if grep -q '\-lm' "$spec"; then
+  # back-up once, patch in place
+  cp "$spec" "$spec.bak"
+  sed -i '' 's/ -lm/ -lSystem/g' "$spec"
+fi
+
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
 ################################################################################
