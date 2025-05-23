@@ -44,15 +44,16 @@ build-verbosity = "3"
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
 # only the tools that are the same on both arches
-environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
+environment = { CC = "clang", CXX = "clang++", FC = "/usr/local/bin/gfortran", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [[tool.cibuildwheel.overrides]]
 # run the custom before-build script only for the arm64 wheel
 select = "*-macosx_arm64"
 before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
 
-# ->  no per-wheel environment section any more
-#    (FC and LDFLAGS will come from the script)
+[tool.cibuildwheel.overrides.environment]
+FC = "/opt/gfortran-darwin-arm64-cross/bin/gfortran"
+LDFLAGS = "-L/opt/gfortran-darwin-arm64-cross/lib -Wl,-rpath,/opt/gfortran-darwin-arm64-cross/lib"
 
 [tool.cibuildwheel.windows]
 archs = ["auto64"]
