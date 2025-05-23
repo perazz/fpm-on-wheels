@@ -5,8 +5,9 @@ set -euo pipefail
 # 0.  Input + globals
 ################################################################################
 PROJECT_DIR="$1"                         # provided by cibuildwheel
-PLAT="${PLAT:-arm64}"                    # wheel arch cibuildwheel is building
+PLAT="${CIBW_ARCH:-$(uname -m)}"         # wheel arch cibuildwheel is building
 GCC_SPEC="14.*"                          # accept any 14-series build
+export PLAT
 
 ################################################################################
 # 1.  Miniforge bootstrap (Å 35 MB)
@@ -24,11 +25,12 @@ eval "$("$MFROOT/bin/conda" shell.bash hook)"
 ################################################################################
 # 2.  Determine host / build sub-dirs and Darwin triplet
 ################################################################################
-if [[ "$(uname -m)" == "x86_64" ]]; then
+if [[ "$PLAT" == "x86_64" ]]; then
   host_subdir="osx-64";   kern_ver=13.4.0
 else
   host_subdir="osx-arm64"; kern_ver=20.0.0
 fi
+
 build_subdir=$([[ "$PLAT" == "x86_64" ]] && echo "osx-64" || echo "osx-arm64")
 type=$([[ "$PLAT" == "$(uname -m)" ]] && echo "native" || echo "cross")
 ENVNAME="gfortran-darwin-${PLAT}-${type}"
