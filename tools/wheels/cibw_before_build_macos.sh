@@ -62,4 +62,30 @@ rm -f  "$PREFIX/lib/libiomp5.dylib"
 # remove heavy math libs only for cross tool-chain
 if [[ "$type" == "cross" ]]; then
   for f in libgmp libgmpxx libisl libiconv libmpfr libz libcharset libmpc; do
-    find "$PREFIX/lib" -name "${f}
+    find "$PREFIX/lib" -name "${f}*.dylib" -delete || true
+  done
+fi
+
+install_name_tool -delete_rpath "$PREFIX/lib" "$GCCDIR/libgfortran.spec" || true
+[[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
+
+################################################################################
+# 5.  Expose compiler to scikit-build
+################################################################################
+ln -sf /usr/bin/ld "$GCCDIR/ld"               # use Apple ld
+export PATH="$PREFIX/bin:$PATH"
+export FC="$PREFIX/bin/${TRIPLE}-gfortran"
+
+if [[ "$type" == "cross" ]]; then
+  export LDFLAGS="-L$GCCDIR -Wl,-rpath,$GCCDIR"
+else
+  sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
+fi
+
+################################################################################
+# 6.  Sanity check
+################################################################################
+echo "### sanity check"
+echo "FC      = $FC"
+echo "LDFLAGS = ${LDFLAGS:-<none>}"
+"$FC" -v | head -n 1 || { echo "gfortran failed to start"; exit 99; }
