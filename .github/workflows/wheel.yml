@@ -11,7 +11,7 @@ jobs:
       matrix:
         sys:
           - { os: windows-2019, shell: "msys2 {0}" }
-          - { os: ubuntu-20.04, shell: bash }
+          - { os: ubuntu-22.04, shell: bash }
           - { os: macos-11, shell: bash }
     defaults:
       run:
