@@ -78,6 +78,13 @@ ln -sf /usr/bin/ld "$GCCDIR/ld"               # use Apple ld
 export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
+# 4.  expose the compiler for scikit-build
+ln -sf /usr/bin/ld "$GCCDIR/ld"          # use AppleÕs system ld
+export PATH="$PREFIX/bin:$PATH"
+export FC="$PREFIX/bin/${TRIPLE}-gfortran"
+echo "FC=$FC"           >> "$GITHUB_ENV"
+echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
+
 if [[ "$type" == "cross" ]]; then
   export LDFLAGS="-L$GCCDIR -Wl,-rpath,$GCCDIR"
 else
@@ -91,3 +98,4 @@ echo "### sanity check"
 echo "FC      = $FC"
 echo "LDFLAGS = ${LDFLAGS:-<none>}"
 "$FC" -v | head -n 1 || { echo "gfortran failed to start"; exit 99; }
+
