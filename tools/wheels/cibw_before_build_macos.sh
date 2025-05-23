@@ -56,9 +56,14 @@ GCCDIR="$PREFIX/lib/gcc/${TRIPLE}/${GCC_VER}"
 # 3.  trim rpaths & delete superfluous dylibs (same as the old script)
 ###############################################################################
 rm -rf "$PREFIX"/lib/{libc++*,*.a,pkgconfig,clang} "$PREFIX"/include "$PREFIX"/conda-meta
-for f in libgmp libgmpxx libisl libiconv libmpfr libz libcharset libmpc; do
-  find "$PREFIX/lib" -name "${f}*.dylib" -delete || true
-done
+
+# --- scrub libraries if cross-compiler 
+if [[ "$type" == "cross" ]]; then
+  for f in libgmp libgmpxx libisl libiconv libmpfr libz libcharset libmpc; do
+      find "$PREFIX/lib" -name "${f}*.dylib" -delete || true
+  done
+fi
+
 rm -f "$PREFIX/lib/libiomp5.dylib"
 
 install_name_tool -delete_rpath "$PREFIX/lib" "$GCCDIR"/libgfortran.spec || true
