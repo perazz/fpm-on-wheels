@@ -144,18 +144,17 @@ sed -i '' 's/-Wl,-syslibroot,/-syslibroot /g' "$spec"
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
 
 ###############################################################################
-# 4c.  Cross wrapper that injects “-arch arm64” on every invocation
+# 4c. Universal wrapper that emits both x86_64 *and* arm64 slices
 ###############################################################################
-if [[ "$type" == "cross" ]]; then
-  WRAPPER="$PREFIX/bin/gfortran-arm64"
-  cat > "$WRAPPER" <<'EOF'
+
+WRAPPER="$PREFIX/bin/gfortran-universal"
+cat > "$WRAPPER" <<'EOF'
 #!/usr/bin/env bash
-# Forward to the host gfortran but force Apple-Silicon output
-exec "$(dirname "$0")/gfortran" -arch arm64 "$@"
+# Build a macOS universal2 binary (x86_64 + arm64)
+exec "$(dirname "$0")/gfortran" -arch x86_64 -arch arm64 "$@"
 EOF
-  chmod +x "$WRAPPER"
-  export FC="$WRAPPER"
-fi
+chmod +x "$WRAPPER"
+export FC="$WRAPPER"
 
 ################################################################################
 # 5.  Expose compiler to scikit-build
