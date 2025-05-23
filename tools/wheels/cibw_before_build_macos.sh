@@ -67,7 +67,6 @@ SDKROOT=$(xcrun --show-sdk-path)
 
 # make the SDK visible *while linking*
 export LIBRARY_PATH="$SDKROOT/usr/lib:${LIBRARY_PATH:-}"
-export LDFLAGS="-Wl,-syslibroot,$SDKROOT ${LDFLAGS:-}"
 
 # keep the compile-time sysroot flags we already added
 export CFLAGS="-isysroot $SDKROOT ${CFLAGS:-}"

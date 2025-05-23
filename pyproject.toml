@@ -47,14 +47,26 @@ before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}
 environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [[tool.cibuildwheel.overrides]]
+# apply only to the Apple-silicon wheel that is built on the x86-64 runner
 select = "*-macosx_arm64"
+
+# still run the same bootstrap script
 before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
 
-# pin the exact compiler + link path that the script installs
+# ---------------------------------------------------------------------
+# Environment *seen by CMake while it configures the wheel build*
+# ---------------------------------------------------------------------
 [tool.cibuildwheel.overrides.environment]
-CC       = "clang"
-CXX      = "clang++"
-LDFLAGS  = "-L$HOME/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 -Wl,-rpath,$HOME/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 -Wl,-syslibroot,$(xcrun --show-sdk-path)"
+CC  = "clang"
+CXX = "clang++"
+FC  = "/usr/local/bin/gfortran"
+# *** Link-time flags ***
+# Ð search the GCC runtime built by the script
+# Ð keep the rpath
+# Ð pass the SDK root with the correct Ò-Wl,Ó wrapper (clang needs it!)
+LDFLAGS = "-L/Users/runner/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 \
+           -Wl,-rpath,/Users/runner/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 \
+           -Wl,-syslibroot,$(xcrun --show-sdk-path)"
 
 [tool.cibuildwheel.windows]
 archs = ["auto64"]
