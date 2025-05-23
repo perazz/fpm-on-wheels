@@ -81,29 +81,30 @@ PREFIX="$CONDA_PREFIX"
 DRIVER_DIR="$PREFIX/bin"
 
 if [[ "$PLAT" == "arm64" ]]; then
-  # look for the real cross-driver name
+  # pick the real cross‐driver name if it exists
   for candidate in \
     "arm64-apple-darwin${kern_ver}-gfortran" \
     "aarch64-apple-darwin${kern_ver}-gfortran" \
   ; do
     if [[ -x "${DRIVER_DIR}/${candidate}" ]]; then
-      TRIPLE="$candidate"
+      FC_DRIVER="${DRIVER_DIR}/${candidate}"
       break
     fi
   done
 
-  if [[ -z "${TRIPLE:-}" ]]; then
+  if [[ -z "${FC_DRIVER:-}" ]]; then
     echo "ERROR: could not find arm64 cross-compiler in $DRIVER_DIR" >&2
     ls -1 "$DRIVER_DIR"
     exit 1
   fi
 else
-  TRIPLE="x86_64-apple-darwin${kern_ver}-gfortran"
+  # native compiler
+  FC_DRIVER="${DRIVER_DIR}/gfortran"
 fi
 
-# now point FC at the chosen driver
-FC_DRIVER="${DRIVER_DIR}/${TRIPLE}"
 export FC="$FC_DRIVER"
+echo "Picked Fortran driver: $FC"   # for your sanity‐check logs
+
 
 ###############################################################################
 # 3b.  Locate GCC versioned lib directory 
