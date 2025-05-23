@@ -10,7 +10,7 @@ GCC_SPEC="14.*"                          # accept any 14-series build
 export PLAT
 
 ################################################################################
-# 1.  Miniforge bootstrap (≈ 35 MB)
+# 1.  Miniforge bootstrap (~ 35 MB)
 ################################################################################
 MFROOT="$HOME/mf"
 if [[ ! -d "$MFROOT" ]]; then
@@ -66,9 +66,18 @@ echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 PREFIX="$CONDA_PREFIX"
 TRIPLE="${PLAT}-apple-darwin${kern_ver}"
 
-# detect the actual gcc 14.x directory (e.g. 14.2.0)
-GCCDIR=$(ls -d "$PREFIX/lib/gcc/${TRIPLE}"/14.* 2>/dev/null | head -n1)
-[[ -d "$GCCDIR" ]] || { echo "ERROR: gcc dir not found"; exit 1; }
+###############################################################################
+# 3b.  Locate GCC versioned lib directory 
+###############################################################################
+FC="$PREFIX/bin/${TRIPLE}-gfortran"        # we know this path already
+GCCDIR="$(dirname "$("$FC" -print-libgcc-file-name)")"
+
+# sanity-check
+[[ -d "$GCCDIR" ]] || {
+  echo "ERROR: could not determine GCC lib directory (got: $GCCDIR)"
+  exit 1
+}
+
 
 ################################################################################
 # 4.  Cleanup (match legacy 11.3 script)
@@ -83,12 +92,14 @@ if [[ "$type" == "cross" ]]; then
   done
 fi
 
-# remove bogus -lm from gfortran specs 
+###############################################################################
+# 4b.  Patch libgfortran.spec → add sysroot + swap -lm → -lSystem
+###############################################################################
 spec="$GCCDIR/libgfortran.spec"
-if grep -q '\-lm' "$spec"; then
-  # back-up once, patch in place
-  cp "$spec" "$spec.bak"
-  sed -i '' 's/ -lm/ -lSystem/g' "$spec"
+if ! grep -q -- "-Wl,-syslibroot," "$spec"; then
+  cp "$spec" "$spec.bak"                 # keep one pristine copy
+  # turn each " -lm" into " -Wl,-syslibroot,<sdk> -lSystem"
+  sed -i '' "s| -lm| -Wl,-syslibroot,$SDKROOT -lSystem|g" "$spec"
 fi
 
 [[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
