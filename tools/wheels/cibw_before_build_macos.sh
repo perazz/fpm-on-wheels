@@ -105,7 +105,6 @@ fi
 export FC="$FC_DRIVER"
 echo "Picked Fortran driver: $FC"   # for your sanity‐check logs
 
-
 ###############################################################################
 # 3b.  Locate GCC versioned lib directory 
 ###############################################################################
@@ -164,10 +163,13 @@ fi
 ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
 export PATH="$PREFIX/bin:$PATH"
 
-# CMake autoconf helpers
-sudo ln -sf "$FC" /usr/local/bin/gfortran   # CMake will call this path
-echo "FC=$FC" >> "$GITHUB_ENV"
+# At this point:
+#  - native job: FC="$PREFIX/bin/gfortran"
+#  - cross  job: FC="$PREFIX/bin/gfortran-arm64"
 
+# Make sure CMake invokes our chosen driver
+sudo ln -sf "$FC" /usr/local/bin/gfortran
+echo "FC=$FC" >> "$GITHUB_ENV"
 
 # LDFLAGS must exist even in the native job
 LDFLAGS="-Wl,-syslibroot,$SDKROOT"
