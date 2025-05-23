@@ -110,75 +110,90 @@ function get_gf_lib_for_suf {
     echo "$out_fname"
 }
 
-if [ "$(uname)" == "Darwin" ]; then
-    mac_target=${MACOSX_DEPLOYMENT_TARGET:-$(get_macosx_target)}
-    export MACOSX_DEPLOYMENT_TARGET=$mac_target
-    # Keep this for now as some builds might depend on this being
-    # available before install_gfortran is called
-    export GFORTRAN_SHA=c469a420d2d003112749dcdcbe3c684eef42127e
-    # Set SDKROOT env variable if not set
-    export SDKROOT=${SDKROOT:-$(xcrun --show-sdk-path)}
+# ---------- macOS (build GCC / GFortran 14.3.0) -----------------------------
 
-    function download_and_unpack_gfortran {
-	local arch=$1
-	local type=$2
-        curl -L -O https://github.com/isuruf/gcc/releases/download/gcc-11.3.0-2/gfortran-darwin-${arch}-${type}.tar.gz
-	case ${arch}-${type} in
-	    arm64-native)
-	        export GFORTRAN_SHA=0d5c118e5966d0fb9e7ddb49321f63cac1397ce8
-		;;
-	    arm64-cross)
-		export GFORTRAN_SHA=527232845abc5af21f21ceacc46fb19c190fe804
-		;;
-	    x86_64-native)
-		export GFORTRAN_SHA=c469a420d2d003112749dcdcbe3c684eef42127e
-		;;
-	    x86_64-cross)
-		export GFORTRAN_SHA=107604e57db97a0ae3e7ca7f5dd722959752f0b3
-		;;
-	esac
-        if [[ "$(shasum gfortran-darwin-${arch}-${type}.tar.gz)" != "${GFORTRAN_SHA}  gfortran-darwin-${arch}-${type}.tar.gz" ]]; then
-            echo "shasum mismatch for gfortran-darwin-${arch}-${type}"
-            exit 1
+if [ "$(uname)" = "Darwin" ]; then
+    : "${MACOSX_DEPLOYMENT_TARGET:=$(python3 -c 'import sysconfig, os;print(sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET") or "11.0")')}"
+    export MACOSX_DEPLOYMENT_TARGET
+    export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
+
+    # ---- version/URL helpers ------------------------------------------------
+    GCC_VERSION="14.3.0"
+    GCC_TAG="releases/gcc-${GCC_VERSION}"
+    GCC_TARBALL="gcc-${GCC_VERSION}.tar.gz"
+    GCC_URL="https://github.com/gcc-mirror/gcc/archive/refs/tags/${GCC_TAG}.tar.gz"
+
+    # installation prefix keeps the old naming convention so the rest
+    # of the build machinery (wheel-repair, rpaths, etc.) stays unchanged
+    function _prefix() { echo "/opt/gfortran-darwin-$1-$2"; }   # $1 = arch, $2 = native|cross
+
+    # ---- download & verify --------------------------------------------------
+    function _fetch_gcc_source {
+        [ -s "${GCC_TARBALL}" ] || curl -L -o "${GCC_TARBALL}" "${GCC_URL}"
+        # Store the SHA1 after first download so subsequent CI runs verify reproducibly
+        local sha_file="${GCC_TARBALL}.sha1"
+        if [ ! -f "${sha_file}" ]; then
+            shasum "${GCC_TARBALL}" | cut -d' ' -f1 > "${sha_file}"
         fi
-        sudo mkdir -p /opt/
-        sudo cp "gfortran-darwin-${arch}-${type}.tar.gz" /opt/gfortran-darwin-${arch}-${type}.tar.gz
-        pushd /opt
-            sudo tar -xvf gfortran-darwin-${arch}-${type}.tar.gz
-            sudo rm gfortran-darwin-${arch}-${type}.tar.gz
+        echo "$(cat "${sha_file}")  ${GCC_TARBALL}" | shasum -c -
+        tar -xf "${GCC_TARBALL}"
+    }
+
+    # ---- build helpers ------------------------------------------------------
+    # $1 = arch (arm64 / x86_64) ; $2 = native|cross
+    function _build_gcc {
+        local arch="$1" ; local kind="$2"
+        local srcdir="gcc-${GCC_VERSION}"
+        local builddir="build-${arch}-${kind}"
+        local prefix="$(_prefix ${arch} ${kind})"
+
+        # Host triplet for configure – arm64-apple-darwin23 or x86_64-apple-darwin23, etc.
+        local host="${arch}-apple-darwin$(uname -r)"
+
+        mkdir -p "${builddir}" && pushd "${builddir}"
+
+        # Configure
+        ../"${srcdir}"/configure \
+            --prefix="${prefix}" \
+            --build="$(../${srcdir}/config.guess)" \
+            --host="${host}" \
+            --target="${host}" \
+            --enable-languages=c,fortran \
+            --disable-multilib \
+            --with-system-zlib \
+            --with-gmp=$(brew --prefix gmp 2>/dev/null || echo /opt/homebrew/opt/gmp) \
+            --with-mpfr=$(brew --prefix mpfr 2>/dev/null || echo /opt/homebrew/opt/mpfr) \
+            --with-mpc=$(brew --prefix libmpc 2>/dev/null || echo /opt/homebrew/opt/libmpc)
+
+        # Build + install
+        make -j"$(sysctl -n hw.logicalcpu)" && sudo make install
         popd
-	if [[ "${type}" == "native" ]]; then
-	    # Link these into /usr/local so that there's no need to add rpath or -L
-	    for f in libgfortran.dylib libgfortran.5.dylib libgcc_s.1.dylib libgcc_s.1.1.dylib libquadmath.dylib libquadmath.0.dylib; do
-                ln -sf /opt/gfortran-darwin-${arch}-${type}/lib/$f /usr/local/lib/$f
-            done
-	    # Add it to PATH
-	    ln -sf /opt/gfortran-darwin-${arch}-${type}/bin/gfortran /usr/local/bin/gfortran
-	fi
+    }
+
+    # ---- high-level entry points --------------------------------------------
+    function install_gfortran {          # native toolchain for current host
+        _fetch_gcc_source
+        _build_gcc "$(uname -m)" native
+        sudo ln -sf "$(_prefix $(uname -m) native)/bin/gfortran" /usr/local/bin/gfortran
+        for f in libgfortran.dylib libgfortran.a libquadmath.dylib; do
+            sudo ln -sf "$(_prefix $(uname -m) native)/lib/$f" /usr/local/lib/$f
+        done
     }
 
     function install_arm64_cross_gfortran {
-	download_and_unpack_gfortran arm64 cross
-        export FC_ARM64="$(find /opt/gfortran-darwin-arm64-cross/bin -name "*-gfortran")"
-        local libgfortran="$(find /opt/gfortran-darwin-arm64-cross/lib -name libgfortran.dylib)"
-        local libdir=$(dirname $libgfortran)
-
-        export FC_ARM64_LDFLAGS="-L$libdir -Wl,-rpath,$libdir"
-        if [[ "${PLAT:-}" == "arm64" ]]; then
-            export FC=$FC_ARM64
+        _fetch_gcc_source
+        if [[ "$(uname -m)" != "arm64" ]]; then
+            _build_gcc arm64 cross
         fi
-    }
-    function install_gfortran {
-        download_and_unpack_gfortran $(uname -m) native
-        check_gfortran
-        if [[ "${PLAT:-}" == "universal2" || "${PLAT:-}" == "arm64" ]]; then
-            install_arm64_cross_gfortran
-        fi
+        export FC_ARM64="$(_prefix arm64 cross)/bin/aarch64-apple-darwin$(uname -r)-gfortran"
+        local libdir="$(_prefix arm64 cross)/lib"
+        export FC_ARM64_LDFLAGS="-L${libdir} -Wl,-rpath,${libdir}"
+        [[ "${PLAT:-}" == "arm64" ]] && export FC="${FC_ARM64}"
     }
 
+    # keep get_gf_lib unchanged – the library file names still start with libgfortran…
     function get_gf_lib {
-        # Get lib with gfortran suffix
-        get_gf_lib_for_suf "gf_${GFORTRAN_SHA:0:7}" $@
+        get_gf_lib_for_suf "gf_$(cat ${GCC_TARBALL}.sha1 | cut -c1-7)" "$@"
     }
 else
     function install_gfortran {
