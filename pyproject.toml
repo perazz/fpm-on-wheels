@@ -46,6 +46,23 @@ archs = ["x86_64", "arm64"]
 before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
 environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
+[[tool.cibuildwheel.overrides]]
+# apply only to the Apple-Silicon wheel we’re cross-compiling on the x86-64 runner
+select = "*-macosx_arm64"
+
+# still run the same setup script
+before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
+
+# pin the exact compiler + link path that the script installs
+[tool.cibuildwheel.overrides.environment]
+CC       = "clang"
+CXX      = "clang++"
+# cross-driver the script puts in $HOME/mf/envs/gfortran-darwin-arm64-cross/bin
+FC       = "$HOME/mf/envs/gfortran-darwin-arm64-cross/bin/arm64-apple-darwin20.0.0-gfortran"
+# runtime libs living in the matching GCC version dir (14.x today)
+LDFLAGS  = "-L$HOME/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 -Wl,-rpath,$HOME/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 -syslibroot $(xcrun --show-sdk-path)"
+
+
 [tool.cibuildwheel.windows]
 archs = ["auto64"]
 environment = { CC = "gcc", CXX = "g++", FC = "gfortran" }
