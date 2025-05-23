@@ -47,6 +47,18 @@ CONDA_SUBDIR="$host_subdir" \
 
 conda activate "$ENVNAME"
 
+SDKROOT=$(xcrun --show-sdk-path)
+
+export CFLAGS="-isysroot $SDKROOT ${CFLAGS:-}"
+export CXXFLAGS="-isysroot $SDKROOT ${CXXFLAGS:-}"
+export FFLAGS="-isysroot $SDKROOT ${FFLAGS:-}"
+export LDFLAGS="-isysroot $SDKROOT ${LDFLAGS:-}"
+
+echo "CFLAGS=$CFLAGS"   >> "$GITHUB_ENV"
+echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
+echo "FFLAGS=$FFLAGS"   >> "$GITHUB_ENV"
+echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
+
 PREFIX="$CONDA_PREFIX"
 TRIPLE="${PLAT}-apple-darwin${kern_ver}"
 
