@@ -98,7 +98,7 @@ if [[ "$PLAT" == "arm64" ]]; then
     exit 1
   fi
 else
-  TRIPLE="x86_64-apple-darwin${kern_ver}"
+  TRIPLE="x86_64-apple-darwin${kern_ver}-gfortran"
 fi
 
 # now point FC at the chosen driver
