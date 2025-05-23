@@ -13,6 +13,12 @@ source "${PROJECT_DIR}/tools/wheels/gfortran_utils.sh"
 install_gfortran   # → /opt/gfortran-darwin-$(uname -m)-native
                    # and a symlink /usr/local/bin/gfortran
 
+# expose native compiler
+if [[ -z "${FC:-}" ]]; then
+    FC_BIN="$(command -v gfortran || true)"
+    [[ -n "$FC_BIN" ]] && export FC="$FC_BIN"
+fi
+                   
 # ---------------------------------------------------------------------------
 # 2.  Add a cross tool-chain *only* when host ≠ target
 # ---------------------------------------------------------------------------
