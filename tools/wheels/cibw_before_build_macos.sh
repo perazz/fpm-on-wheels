@@ -179,6 +179,8 @@ fi
 # ────────────────────────────────────────────────────────────────────────────
 if [[ -n "${CIBW_ENVIRONMENT_OUTPUT_PATH:-}" ]]; then
   {
+    echo "FC=$FC"
+    echo "LDFLAGS=$LDFLAGS"  
     echo "SDKROOT=$SDKROOT"
     echo "CMAKE_OSX_SYSROOT=$SDKROOT"
   } >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
