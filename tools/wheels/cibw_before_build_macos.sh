@@ -49,10 +49,14 @@ conda activate "$ENVNAME"
 
 SDKROOT=$(xcrun --show-sdk-path)
 
+# make the SDK visible *while linking*
+export LIBRARY_PATH="$SDKROOT/usr/lib:${LIBRARY_PATH:-}"
+export LDFLAGS="-Wl,-syslibroot,$SDKROOT ${LDFLAGS:-}"
+
+# keep the compile-time sysroot flags we already added
 export CFLAGS="-isysroot $SDKROOT ${CFLAGS:-}"
 export CXXFLAGS="-isysroot $SDKROOT ${CXXFLAGS:-}"
 export FFLAGS="-isysroot $SDKROOT ${FFLAGS:-}"
-export LDFLAGS="-isysroot $SDKROOT ${LDFLAGS:-}"
 
 echo "CFLAGS=$CFLAGS"   >> "$GITHUB_ENV"
 echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
