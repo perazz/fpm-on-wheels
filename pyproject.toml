@@ -37,10 +37,6 @@ bug-tracker = "https://github.com/fortran-lang/fpm/issues"
 [tool.setuptools_scm]
 write_to = "src/fpm/_version.py"
 
-[tool.cibuildwheel.windows]
-archs = ["auto64"]
-environment = { CC = "gcc", CXX = "g++", FC = "gfortran" }
-
 [tool.cibuildwheel]
 build = "cp312-*"
 build-verbosity = "3"
