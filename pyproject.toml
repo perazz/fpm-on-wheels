@@ -54,7 +54,6 @@ before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}
 [tool.cibuildwheel.overrides.environment]
 CC       = "clang"
 CXX      = "clang++"
-FC       = "$HOME/mf/envs/gfortran-darwin-arm64-cross/bin/arm64-apple-darwin20.0.0-gfortran"
 LDFLAGS  = "-L$HOME/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 -Wl,-rpath,$HOME/mf/envs/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/14.2.0 -Wl,-syslibroot,$(xcrun --show-sdk-path)"
 
 [tool.cibuildwheel.windows]
