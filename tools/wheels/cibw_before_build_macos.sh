@@ -157,9 +157,9 @@ echo "FC=$FC" >> "$GITHUB_ENV"
 
 
 # LDFLAGS must exist even in the native job
-LDFLAGS="-syslibroot $SDKROOT"              
+LDFLAGS="-Wl,-syslibroot,$SDKROOT"
 if [[ "$type" == "cross" ]]; then
-  LDFLAGS+=" -L$GCCDIR -rpath $GCCDIR"      
+  LDFLAGS+=" -L$GCCDIR -Wl,-rpath,$GCCDIR"
 else
   sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
 fi
