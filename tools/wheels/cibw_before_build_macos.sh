@@ -138,6 +138,25 @@ ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
 export PATH="$PREFIX/bin:$PATH"
 export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
+# Select the correct Fortran compiler
+if [[ "$type" == "cross" ]]; then
+  # GCC >=12 uses “arm64”, older builds use “aarch64”
+  for pat in "arm64-apple-darwin${kern_ver}-gfortran" \
+             "aarch64-apple-darwin${kern_ver}-gfortran"; do
+    if [[ -x "$PREFIX/bin/$pat" ]]; then
+      export FC="$PREFIX/bin/$pat"
+      break
+    fi
+  done
+  [[ -n "${FC:-}" ]] || { echo "cross driver not found"; exit 1; }
+else
+  export FC="$PREFIX/bin/gfortran"          # native job
+fi
+
+# CMake autoconf helpers
+sudo ln -sf "$FC" /usr/local/bin/gfortran
+echo "FC=$FC" >> "$GITHUB_ENV"
+
 # LDFLAGS must exist even in the native job
 LDFLAGS="-syslibroot $SDKROOT"              
 if [[ "$type" == "cross" ]]; then
@@ -146,15 +165,13 @@ else
   sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
 fi
 export LDFLAGS
-
-# CMake autoconf helpers
-sudo ln -sf "$FC" /usr/local/bin/gfortran
+echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
 
 # hand back to later GitHub Actions steps
 echo "CMAKE_OSX_ARCHITECTURES=$PLAT" >> "$GITHUB_ENV"
-echo "CMAKE_SYSTEM_PROCESSOR=$PLAT"   >> "$GITHUB_ENV"
-echo "FC=$FC"           >> "$GITHUB_ENV"
-echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
+if [[ "$type" == "cross" ]]; then
+  echo "CMAKE_SYSTEM_PROCESSOR=$PLAT" >> "$GITHUB_ENV"   # arm64
+fi
 
 # ────────────────────────────────────────────────────────────────────────────
 # Record SDK path for cibuildwheel's build phase
