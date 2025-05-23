@@ -1,21 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="$1"              # passed in by cibuildwheel
-PLAT="${PLAT:-arm64}"         # macosx-arm64 wheel in this job
-export PLAT
+PROJECT_DIR="$1"               # supplied by cibuildwheel
+PLAT="${PLAT:-arm64}"          # wheel arch requested by CIBW
+export PLAT                    # keep downstream tools happy
 
 source "${PROJECT_DIR}/tools/wheels/gfortran_utils.sh"
 
-# 1.  Build a native compiler for the host we are actually running on
-install_gfortran               # produces /opt/gfortran-darwin-$(uname -m)-native
+# ---------------------------------------------------------------------------
+# 1.  Always build a native tool-chain for *this* runner’s CPU
+# ---------------------------------------------------------------------------
+install_gfortran   # → /opt/gfortran-darwin-$(uname -m)-native
+                   # and a symlink /usr/local/bin/gfortran
 
-# 2.  If we�re cross-compiling, add an arm64 tool-chain as well
+# ---------------------------------------------------------------------------
+# 2.  Add a cross tool-chain *only* when host ≠ target
+# ---------------------------------------------------------------------------
 if [[ "$PLAT" == "arm64" && "$(uname -m)" != "arm64" ]]; then
-    install_arm64_cross_gfortran   # /opt/gfortran-darwin-arm64-cross
+    install_arm64_cross_gfortran   # → /opt/gfortran-darwin-arm64-cross
+
+    # Put the arm64 driver at the front of PATH so CMake finds it
+    export PATH="$(_prefix arm64 cross)/bin:$PATH"
 fi
 
-# 3.  Print the variables that the build step needs to copy from the log
-echo "@@@ FC:" "$FC"
-echo "@@@ FC_ARM64_LDFLAGS:" "$FC_ARM64_LDFLAGS"
-
+# ---------------------------------------------------------------------------
+# 3.  Emit helpful info for debugging (won’t break set -u)
+# ---------------------------------------------------------------------------
+echo "@@@ FC:" "${FC:-<not-set>}"
+echo "@@@ FC_ARM64_LDFLAGS:" "${FC_ARM64_LDFLAGS:-<not-set>}"

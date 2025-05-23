@@ -37,25 +37,26 @@ bug-tracker = "https://github.com/fortran-lang/fpm/issues"
 [tool.setuptools_scm]
 write_to = "src/fpm/_version.py"
 
+[tool.cibuildwheel.windows]
+archs = ["auto64"]
+environment = { CC = "gcc", CXX = "g++", FC = "gfortran" }
+
 [tool.cibuildwheel]
 build = "cp312-*"
 build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-environment = { CC = "clang", CXX = "clang++", FC = "gfortran-12", MACOSX_DEPLOYMENT_TARGET = "13.0"}
+# only the tools that are the same on both arches
+environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [[tool.cibuildwheel.overrides]]
+# run the custom before-build script only for the arm64 wheel
 select = "*-macosx_arm64"
 before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
 
-[tool.cibuildwheel.overrides.environment]
-CC = "clang"
-CXX = "clang++"
-FC = "/opt/gfortran-darwin-arm64-cross/bin/arm64-apple-darwin20.0.0-gfortran"
-LDFLAGS = "-L/opt/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/11.3.0 -Wl,-rpath,/opt/gfortran-darwin-arm64-cross/lib/gcc/arm64-apple-darwin20.0.0/11.3.0"
-MACOSX_DEPLOYMENT_TARGET = "11.0"
-CMAKE_VERBOSE_MAKEFILE = "ON"
+# ->  no per-wheel environment section any more
+#    (FC and LDFLAGS will come from the script)
 
 [tool.cibuildwheel.windows]
 archs = ["auto64"]
