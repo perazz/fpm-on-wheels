@@ -113,8 +113,9 @@ export FC="$PREFIX/bin/${TRIPLE}-gfortran"
 
 # LDFLAGS must exist even in the native job
 LDFLAGS="-Wl,-syslibroot,$SDKROOT"
+LDFLAGS="-syslibroot $SDKROOT"              
 if [[ "$type" == "cross" ]]; then
-  LDFLAGS+=" -L$GCCDIR -Wl,-rpath,$GCCDIR"
+  LDFLAGS+=" -L$GCCDIR -rpath $GCCDIR"      
 else
   sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
 fi
