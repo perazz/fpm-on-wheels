@@ -190,8 +190,9 @@ if [ "$(uname)" = "Darwin" ]; then
         if [[ "$(uname -m)" != "arm64" ]]; then
             _build_gcc arm64 cross
         fi
-        export FC_ARM64="$(_prefix arm64 cross)/bin/aarch64-apple-darwin$(uname -r)-gfortran"
-        local libdir="$(_prefix arm64 cross)/lib"
+        export FC_ARM64="$(find $(_prefix arm64 cross)/bin -name "*-gfortran")"
+        local libgfortran="$(find $(_prefix arm64 cross)/lib -name libgfortran.dylib)"
+        local libdir=$(dirname $libgfortran)
         export FC_ARM64_LDFLAGS="-L${libdir} -Wl,-rpath,${libdir}"
         [[ "${PLAT:-}" == "arm64" ]] && export FC="${FC_ARM64}"
     }
