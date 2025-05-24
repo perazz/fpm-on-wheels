@@ -36,11 +36,8 @@ eval "$("$MFROOT/bin/conda" shell.bash hook)"
 ################################################################################
 
 # host_subdir = *target* arch  (libs that will end up in the wheel)
-if [[ "$PLAT" == "x86_64" ]]; then
-  host_subdir="osx-64";   kern_ver=13.4.0
-else
-  host_subdir="osx-arm64"; kern_ver=20.0.0
-fi
+kern_ver="$(uname -r)"
+host_subdir=$([[ "$PLAT" == "x86_64" ]] && echo osx-64 || echo osx-arm64)
 
 # build_subdir = *runner* arch (the compiler we can execute right now)
 if [[ "$(uname -m)" == "x86_64" ]]; then
@@ -89,6 +86,12 @@ else
 fi  
 export PREFIX
   
+if [[ "$type" == "cross" ]]; then
+  echo "⚙️  Built Arm cross-compiler; skipping Conda cleanup + spec patch"
+  exit 0
+fi
+  
+
 SDKROOT=$(xcrun --show-sdk-path)
 
 # make the SDK visible *while linking*
@@ -113,46 +116,6 @@ GCCDIR="$(dirname "$("$FC" -print-libgcc-file-name)")"
   echo "ERROR: could not determine GCC lib directory (got: $GCCDIR)"
   exit 1
 }
-
-
-################################################################################
-# 4.  Cleanup (match legacy 11.3 script)
-################################################################################
-rm -rf "$PREFIX"/lib/{libc++*,*.a,pkgconfig,clang} "$PREFIX"/include "$PREFIX"/conda-meta
-rm -f  "$PREFIX/lib/libiomp5.dylib"
-
-# remove heavy math libs only for cross tool-chain
-if [[ "$type" == "cross" ]]; then
-  for f in libgmp libgmpxx libisl libiconv libmpfr libz libcharset libmpc; do
-    find "$PREFIX/lib" -name "${f}*.dylib" -delete || true
-  done
-fi
-
-###############################################################################
-# 4b.  Patch libgfortran.spec → add sysroot + swap -lm → -lSystem
-###############################################################################
-spec="$GCCDIR/libgfortran.spec"
-if ! grep -q -- "-Wl,-syslibroot," "$spec"; then
-  cp "$spec" "$spec.bak"                 # keep one pristine copy
-  # turn each " -lm" into " -Wl,-syslibroot,<sdk> -lSystem"
-  sed -i '' "s| -lm| -Wl,-syslibroot,$SDKROOT -lSystem|g" "$spec"
-fi
-sed -i '' 's/-Wl,-syslibroot,/-syslibroot /g' "$spec"
-
-[[ -f "$GCCDIR/cc1.bin" ]] && mv "$GCCDIR/cc1.bin" "$GCCDIR/cc1"
-
-###############################################################################
-# 4c. Universal wrapper that emits both x86_64 *and* arm64 slices
-###############################################################################
-
-WRAPPER="$PREFIX/bin/gfortran-universal"
-cat > "$WRAPPER" <<'EOF'
-#!/usr/bin/env bash
-# Build a macOS universal2 binary (x86_64 + arm64)
-exec "$(dirname "$0")/gfortran" -arch x86_64 -arch arm64 "$@"
-EOF
-chmod +x "$WRAPPER"
-export FC="$WRAPPER"
 
 ################################################################################
 # 5.  Expose compiler to scikit-build
