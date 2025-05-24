@@ -38,18 +38,24 @@ function _build_gcc {
   popd
 }
 
-# Install universal2 cross-compiler
 function install_arm64_cross_gfortran {
   _fetch_gcc_source
   _build_gcc arm64
-  # create universal2 wrapper
+
+  # where gcc got installed for arm64
   prefix="$(_prefix arm64)"
-  cat > "$prefix/bin/gfortran-universal" << 'EOF'
+
+  # generate a "universal2" wrapper
+  cat > "$prefix/bin/gfortran-universal" <<EOF
 #!/usr/bin/env bash
-exec "$prefix/bin/gfortran" -arch x86_64 -arch arm64 "$@"
+# call the sibling gfortran binary with both arches
+exec "\$(dirname "\$0")/gfortran" -arch x86_64 -arch arm64 "\$@"
 EOF
+
   chmod +x "$prefix/bin/gfortran-universal"
-  # export variables for caller
+
+  # export for callers
   export FC_ARM64="$prefix/bin/gfortran"
   export FC_ARM64_LDFLAGS="-L$prefix/lib -Wl,-rpath,$prefix/lib"
 }
+
