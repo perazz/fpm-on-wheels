@@ -4,10 +4,20 @@ set -euo pipefail
 ################################################################################
 # 0.  Input + globals
 ################################################################################
-PROJECT_DIR="$1"                         # provided by cibuildwheel
-PLAT="${CIBW_ARCH:-$(uname -m)}"         # wheel arch cibuildwheel is building
-GCC_SPEC="14.*"                          # accept any 14-series build
+
+# provided by cibuildwheel
+PROJECT_DIR="$1"                         
+
+# wheel arch cibuildwheel is building
+PLAT="${CIBW_ARCH:-$(uname -m)}"         
 export PLAT
+
+# accept any 14-series build
+GCC_SPEC="14.*"              
+           
+# Path to cross-compiler installation script
+GFORTRAN_UTILS="$(pwd)/${PROJECT_DIR}/tools/wheels/gfortran_utils.sh"
+source "$GFORTRAN_UTILS"
 
 ################################################################################
 # 1.  Miniforge bootstrap (~ 35 MB)
@@ -61,8 +71,20 @@ CONDA_SUBDIR="$build_subdir" \
 CONDA_SUBDIR="$host_subdir" \
   mamba install -y -n "$ENVNAME" libgfortran="$GCC_SPEC"
 
-conda activate "$ENVNAME"
-
+if [[ "$type" == "cross" ]]; then
+    echo "⚙️  Building Arm cross-compiler via gfortran_utils.sh"
+    install_arm64_cross_gfortran
+    # install_arm64_cross_gfortran sets FC_ARM64 and FC_ARM64_LDFLAGS
+    export FC="$FC_ARM64"
+    export LDFLAGS="$FC_ARM64_LDFLAGS"
+    echo "Using cross-built Fortran compiler: $FC"
+else
+    # native host toolchain already in Miniforge or system
+    conda activate "$ENVNAME"
+    FC="$(which gfortran)"
+    echo "Using native Fortran compiler: $FC"
+fi  
+  
 SDKROOT=$(xcrun --show-sdk-path)
 
 # make the SDK visible *while linking*
@@ -76,34 +98,6 @@ export FFLAGS="-isysroot $SDKROOT ${FFLAGS:-}"
 echo "CFLAGS=$CFLAGS"   >> "$GITHUB_ENV"
 echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
 echo "FFLAGS=$FFLAGS"   >> "$GITHUB_ENV"
-
-PREFIX="$CONDA_PREFIX"
-DRIVER_DIR="$PREFIX/bin"
-
-if [[ "$PLAT" == "arm64" ]]; then
-  # pick the real cross‐driver name if it exists
-  for candidate in \
-    "arm64-apple-darwin${kern_ver}-gfortran" \
-    "aarch64-apple-darwin${kern_ver}-gfortran" \
-  ; do
-    if [[ -x "${DRIVER_DIR}/${candidate}" ]]; then
-      FC_DRIVER="${DRIVER_DIR}/${candidate}"
-      break
-    fi
-  done
-
-  if [[ -z "${FC_DRIVER:-}" ]]; then
-    echo "ERROR: could not find arm64 cross-compiler in $DRIVER_DIR" >&2
-    ls -1 "$DRIVER_DIR"
-    exit 1
-  fi
-else
-  # native compiler
-  FC_DRIVER="${DRIVER_DIR}/gfortran"
-fi
-
-export FC="$FC_DRIVER"
-echo "Picked Fortran driver: $FC"   # for your sanity‐check logs
 
 ###############################################################################
 # 3b.  Locate GCC versioned lib directory 
