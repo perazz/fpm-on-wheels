@@ -155,6 +155,11 @@ if [ "$(uname)" = "Darwin" ]; then
         # Host triplet for configure Ð arm64-apple-darwin23 or x86_64-apple-darwin23, etc.
         local host="${arch}-apple-darwin$(uname -r)"
 
+        # use system archivers
+        export AR=/usr/bin/ar
+        export RANLIB=/usr/bin/ranlib
+        export NM=/usr/bin/nm        
+        
         mkdir -p "${builddir}" && pushd "${builddir}"
 
         # Configure
