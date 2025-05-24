@@ -192,9 +192,7 @@ if [ "$(uname)" = "Darwin" ]; then
 
     function install_arm64_cross_gfortran {
         _fetch_gcc_source
-        if [[ "$(uname -m)" != "arm64" ]]; then
-            _build_gcc arm64 cross
-        fi
+        _build_gcc arm64 cross
         export FC_ARM64="$(find $(_prefix arm64 cross)/bin -name "*-gfortran")"
         local libgfortran="$(find $(_prefix arm64 cross)/lib -name libgfortran.dylib)"
         local libdir=$(dirname $libgfortran)
