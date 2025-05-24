@@ -77,6 +77,8 @@ if [[ "$type" == "cross" ]]; then
     echo "Using cross-built Fortran compiler: $FC"
     # tell the rest of the script where our cross‐compiler lives:
     PREFIX="$(_prefix arm64 cross)"
+    echo "Using cross-compiler prefix: $PREFIX"
+    
     echo "Cross‐compiler prefix: $PREFIX"    
 else
     # native host toolchain already in Miniforge or system
@@ -85,12 +87,6 @@ else
     echo "Using native Fortran compiler: $FC"
 fi  
 export PREFIX
-  
-if [[ "$type" == "cross" ]]; then
-  echo "⚙️  Built Arm cross-compiler; skipping Conda cleanup + spec patch"
-  exit 0
-fi
-  
 
 SDKROOT=$(xcrun --show-sdk-path)
 
