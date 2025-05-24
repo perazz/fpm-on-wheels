@@ -42,7 +42,7 @@ build = "cp312-*"
 build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
-archs = ["universal2"]
+archs = ["arm64"]
 before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
 environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
