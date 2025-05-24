@@ -72,13 +72,16 @@ if [[ "$type" == "cross" ]]; then
     echo "⚙️  Building Arm cross-compiler via gfortran_utils.sh"
     install_arm64_cross_gfortran
     # install_arm64_cross_gfortran sets FC_ARM64 and FC_ARM64_LDFLAGS
-    export FC="$FC_ARM64"
+    
+    PREFIX="$(_prefix arm64 cross)"
+    # pick the first cross-driver that exists (aarch64 or arm64)
+    export FC="$(ls "$PREFIX/bin"/*-apple-darwin$(uname -r)-gfortran 2>/dev/null | head -n1)"
+    if [[ ! -x "$FC" ]]; then
+      echo "ERROR: no cross-gfortran found under $PREFIX/bin" >&2
+      exit 1
+    fi
     export LDFLAGS="$FC_ARM64_LDFLAGS"
     echo "Using cross-built Fortran compiler: $FC"
-    # tell the rest of the script where our cross‐compiler lives:
-    PREFIX="$(_prefix arm64 cross)"
-    echo "Using cross-compiler prefix: $PREFIX"
-    
     echo "Cross‐compiler prefix: $PREFIX"    
 else
     # native host toolchain already in Miniforge or system
