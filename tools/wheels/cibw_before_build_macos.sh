@@ -78,12 +78,16 @@ if [[ "$type" == "cross" ]]; then
     export FC="$FC_ARM64"
     export LDFLAGS="$FC_ARM64_LDFLAGS"
     echo "Using cross-built Fortran compiler: $FC"
+    # tell the rest of the script where our cross‐compiler lives:
+    PREFIX="$(_prefix arm64 cross)"
+    echo "Cross‐compiler prefix: $PREFIX"    
 else
     # native host toolchain already in Miniforge or system
     conda activate "$ENVNAME"
     FC="$(which gfortran)"
     echo "Using native Fortran compiler: $FC"
 fi  
+export PREFIX
   
 SDKROOT=$(xcrun --show-sdk-path)
 
@@ -95,9 +99,9 @@ export CFLAGS="-isysroot $SDKROOT ${CFLAGS:-}"
 export CXXFLAGS="-isysroot $SDKROOT ${CXXFLAGS:-}"
 export FFLAGS="-isysroot $SDKROOT ${FFLAGS:-}"
 
-echo "CFLAGS=$CFLAGS"   >> "$GITHUB_ENV"
+echo "CFLAGS=$CFLAGS"     >> "$GITHUB_ENV"
 echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
-echo "FFLAGS=$FFLAGS"   >> "$GITHUB_ENV"
+echo "FFLAGS=$FFLAGS"     >> "$GITHUB_ENV"
 
 ###############################################################################
 # 3b.  Locate GCC versioned lib directory 
