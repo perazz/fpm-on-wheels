@@ -68,14 +68,18 @@ CONDA_SUBDIR="$build_subdir" \
 CONDA_SUBDIR="$host_subdir" \
   mamba install -y -n "$ENVNAME" libgfortran="$GCC_SPEC"
 
+CONDA_SUBDIR="$build_subdir" \
+  mamba install -y -n "$ENVNAME" gmp mpfr mpc  
+  
+conda activate "$ENVNAME"  
+export GMP_PREFIX="$CONDA_PREFIX"
+export MPFR_PREFIX="$CONDA_PREFIX"
+export MPC_PREFIX="$CONDA_PREFIX"  
+  
 if [[ "$type" == "cross" ]]; then
 
     # before install_arm64_cross_gfortran: ensure multi-precision libraries are installed
-    mamba install -y gmp mpfr mpc
-    export GMP_PREFIX="$CONDA_PREFIX"
-    export MPFR_PREFIX="$CONDA_PREFIX"
-    export MPC_PREFIX="$CONDA_PREFIX"
-
+    
     echo "⚙️  Building Arm cross-compiler via gfortran_utils.sh"
     install_arm64_cross_gfortran
     # install_arm64_cross_gfortran sets FC_ARM64 and FC_ARM64_LDFLAGS
@@ -91,8 +95,7 @@ if [[ "$type" == "cross" ]]; then
     echo "Using cross-built Fortran compiler: $FC"
     echo "Cross‐compiler prefix: $PREFIX"    
 else
-    # native host toolchain already in Miniforge or system
-    conda activate "$ENVNAME"
+    # native host toolchain already in Miniforge or system    
     FC="$(which gfortran)"
     echo "Using native Fortran compiler: $FC"
 fi  
