@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Minimal vendored helper for universal2 builds
-: "${MACOSX_DEPLOYMENT_TARGET:=$(python3 -c 'import sysconfig;print(sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET") or "11.0"))}"
+: "${MACOSX_DEPLOYMENT_TARGET:=$(python3 -c 'import sysconfig;print(sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET") or "11.0")')}"
 export SDKROOT="$(xcrun --show-sdk-path)"
 GCC_VERSION=14.3.0
 GCC_TARBALL=gcc-${GCC_VERSION}.tar.gz
@@ -58,4 +58,5 @@ EOF
   export FC_ARM64="$prefix/bin/gfortran"
   export FC_ARM64_LDFLAGS="-L$prefix/lib -Wl,-rpath,$prefix/lib"
 }
+
 
