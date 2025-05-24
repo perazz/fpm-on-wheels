@@ -167,10 +167,9 @@ if [ "$(uname)" = "Darwin" ]; then
             --disable-multilib \
             --disable-nls \
             --with-system-zlib \
-            --with-gmp=$(brew --prefix gmp 2>/dev/null || echo /opt/homebrew/opt/gmp) \
-            --with-mpfr=$(brew --prefix mpfr 2>/dev/null || echo /opt/homebrew/opt/mpfr) \
-            --with-mpc=$(brew --prefix libmpc 2>/dev/null || echo /opt/homebrew/opt/libmpc)
-
+            --with-gmp=${GMP_PREFIX} \
+            --with-mpfr=${MPFR_PREFIX} \
+            --with-mpc=${MPC_PREFIX}
         # Build + install
         make -j"$(sysctl -n hw.logicalcpu)" && sudo make install
         popd
