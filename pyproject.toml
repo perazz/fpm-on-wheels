@@ -1,10 +1,10 @@
 [build-system]
 requires = [
-    "setuptools>=67.0.0",
-    "scikit-build>=0.16.7",
-    "cmake>=3.20.0",
-    "ninja",
-    "setuptools_scm>=8",
+  "setuptools>=67.0.0",
+  "scikit-build>=0.16.7",
+  "cmake>=3.20.0",
+  "ninja",
+  "setuptools_scm>=8",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -17,15 +17,15 @@ description = "Fortran package manager"
 readme = "docs/README.md"
 keywords = ["fpm", "fortran", "package manager"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Fortran",
-    "Topic :: Software Development :: Build Tools",
-    "Topic :: Software Development :: Compilers",
-    "Topic :: Software Development :: Pre-processors",
-    "Topic :: Utilities",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Fortran",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Compilers",
+  "Topic :: Software Development :: Pre-processors",
+  "Topic :: Utilities",
 ]
 dynamic = ["version", "entry-points", "scripts"]
 
