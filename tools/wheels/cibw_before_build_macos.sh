@@ -70,16 +70,11 @@ CONDA_SUBDIR="$host_subdir" \
 
 if [[ "$type" == "cross" ]]; then
 
-    # before install_arm64_cross_gfortran
-    mamba install -y gmp mpfr libmpc
+    # before install_arm64_cross_gfortran: ensure multi-precision libraries are installed
+    mamba install -y gmp mpfr mpc
     export GMP_PREFIX="$CONDA_PREFIX"
     export MPFR_PREFIX="$CONDA_PREFIX"
     export MPC_PREFIX="$CONDA_PREFIX"
-    # then patch the vendor script’s configure flags to
-    #   --with-gmp=${GMP_PREFIX}
-    #   --with-mpfr=${MPFR_PREFIX}
-    #   --with-mpc=${MPC_PREFIX}
-
 
     echo "⚙️  Building Arm cross-compiler via gfortran_utils.sh"
     install_arm64_cross_gfortran
