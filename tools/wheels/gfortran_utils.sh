@@ -38,13 +38,33 @@ function _build_gcc {
   popd
 }
 
+# Update config.sub and config.guess to latest versions
+function _update_config_sub {
+  local src_dir="gcc-${GCC_VERSION}"
+  pushd "$src_dir" >/dev/null
+
+  # Download newest autotools helper scripts
+  curl -fsSL \
+    https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub \
+    -o build-aux/config.sub
+  curl -fsSL \
+    https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess \
+    -o build-aux/config.guess
+
+  # Propagate to all subdirectories
+  find . -name config.sub   -exec cp build-aux/config.sub   {} \;
+  find . -name config.guess -exec cp build-aux/config.guess {} \;
+  popd >/dev/null
+}
+
 function install_arm64_cross_gfortran {
   _fetch_gcc_source
+  _update_config_sub
   _build_gcc arm64
-
+    
   # where gcc got installed for arm64
-  prefix="$(_prefix arm64)"
-
+  prefix="$(_prefix arm64)"  
+  
   # generate a "universal2" wrapper
   cat > "$prefix/bin/gfortran-universal" <<EOF
 #!/usr/bin/env bash
