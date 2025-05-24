@@ -1,180 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-################################################################################
-# 0.  Input + globals
-################################################################################
+# Usage: bash .../cibw_before_build_macos.sh <project_dir>
+PROJECT_DIR="$1"
 
-# provided by cibuildwheel
-PROJECT_DIR="$1"                         
-
-# wheel arch cibuildwheel is building
-PLAT="${CIBW_ARCH:-$(uname -m)}"         
-export PLAT
-
-# accept any 14-series build
-GCC_SPEC="14.*"              
-           
-# Path to cross-compiler installation script
-GFORTRAN_UTILS="$(pwd)/${PROJECT_DIR}/tools/wheels/gfortran_utils.sh"
-source "$GFORTRAN_UTILS"
-
-################################################################################
-# 1.  Miniforge bootstrap (~ 35 MB)
-################################################################################
+# Bootstrap Conda
 MFROOT="$HOME/mf"
-if [[ ! -d "$MFROOT" ]]; then
-  curl -sL \
-    "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh" \
-    -o miniforge.sh
-  bash miniforge.sh -b -p "$MFROOT"
-fi
-eval "$("$MFROOT/bin/conda" shell.bash hook)"
+[[ -d "$MFROOT" ]] || bash <(curl -sL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh) -b -p "$MFROOT"
+eval "$($MFROOT/bin/conda shell.bash hook)"
 
-################################################################################
-# 2.  Determine host/build sub-dirs and Darwin triplet
-################################################################################
-
-# host_subdir = *target* arch  (libs that will end up in the wheel)
-kern_ver="$(uname -r)"
-host_subdir=$([[ "$PLAT" == "x86_64" ]] && echo osx-64 || echo osx-arm64)
-
-# build_subdir = *runner* arch (the compiler we can execute right now)
-if [[ "$(uname -m)" == "x86_64" ]]; then
-  build_subdir="osx-64"
-else
-  build_subdir="osx-arm64"
-fi
-type=$([[ "$PLAT" == "$(uname -m)" ]] && echo "native" || echo "cross")
-ENVNAME="gfortran-darwin-${PLAT}-${type}"
-
-###############################################################################
-# 2b.  Make sure the env name is clean
-###############################################################################
-ENVPATH="$MFROOT/envs/$ENVNAME"
-if [[ -d "$ENVPATH" && ! -f "$ENVPATH/conda-meta/history" ]]; then
-  echo "Removing stale non-conda folder at $ENVPATH"
-  rm -rf "$ENVPATH"
-fi
-
-################################################################################
-# 3.  Create tool-chain environment
-################################################################################
-CONDA_SUBDIR="$build_subdir" \
-  mamba create -y -n "$ENVNAME" \
-    gfortran_impl_${build_subdir}="$GCC_SPEC" \
-    libgfortran-devel_${build_subdir}="$GCC_SPEC"
-
-CONDA_SUBDIR="$host_subdir" \
-  mamba install -y -n "$ENVNAME" libgfortran="$GCC_SPEC"
-
-CONDA_SUBDIR="$build_subdir" \
-  mamba install -y -n "$ENVNAME" gmp mpfr mpc  
-  
-conda activate "$ENVNAME"  
+# Create and activate toolchain env
+BUILD_SUBDIR=osx-64
+mamba create -y -n fpm-gfortran-cross gfortran_impl_osx-64="14.*" libgfortran-devel_osx-64="14.*" gmp mpfr mpc
+conda activate fpm-gfortran-cross
 export GMP_PREFIX="$CONDA_PREFIX"
 export MPFR_PREFIX="$CONDA_PREFIX"
-export MPC_PREFIX="$CONDA_PREFIX"  
-  
-if [[ "$type" == "cross" ]]; then
+export MPC_PREFIX="$CONDA_PREFIX"
 
-    # before install_arm64_cross_gfortran: ensure multi-precision libraries are installed
-    
-    echo "⚙️  Building Arm cross-compiler via gfortran_utils.sh"
-    install_arm64_cross_gfortran
-    # install_arm64_cross_gfortran sets FC_ARM64 and FC_ARM64_LDFLAGS
-    
-    PREFIX="$(_prefix arm64 cross)"
-    # pick the first cross-driver that exists (aarch64 or arm64)
-    export FC="$(ls "$PREFIX/bin"/*-apple-darwin$(uname -r)-gfortran 2>/dev/null | head -n1)"
-    if [[ ! -x "$FC" ]]; then
-      echo "ERROR: no cross-gfortran found under $PREFIX/bin" >&2
-      exit 1
-    fi
-    export LDFLAGS="$FC_ARM64_LDFLAGS"
-    echo "Using cross-built Fortran compiler: $FC"
-    echo "Cross‐compiler prefix: $PREFIX"    
-else
-    # native host toolchain already in Miniforge or system    
-    FC="$(which gfortran)"
-    echo "Using native Fortran compiler: $FC"
-fi  
-export PREFIX
+# Build universal2 GCC/GFortran
+GFORTRAN_UTILS="$(pwd)/${PROJECT_DIR}/tools/wheels/gfortran_utils.sh"
+source "$GFORTRAN_UTILS"
+install_arm64_cross_gfortran  # builds arm64 cross into /opt/gfortran-darwin-arm64-cross
+install_arm64_cross_gfortran x86_64 cross universal2
 
-SDKROOT=$(xcrun --show-sdk-path)
-
-# make the SDK visible *while linking*
-export LIBRARY_PATH="$SDKROOT/usr/lib:${LIBRARY_PATH:-}"
-
-# keep the compile-time sysroot flags we already added
-export CFLAGS="-isysroot $SDKROOT ${CFLAGS:-}"
-export CXXFLAGS="-isysroot $SDKROOT ${CXXFLAGS:-}"
-export FFLAGS="-isysroot $SDKROOT ${FFLAGS:-}"
-
-echo "CFLAGS=$CFLAGS"     >> "$GITHUB_ENV"
-echo "CXXFLAGS=$CXXFLAGS" >> "$GITHUB_ENV"
-echo "FFLAGS=$FFLAGS"     >> "$GITHUB_ENV"
-
-###############################################################################
-# 3b.  Locate GCC versioned lib directory 
-###############################################################################
-GCCDIR="$(dirname "$("$FC" -print-libgcc-file-name)")"
-
-# sanity-check
-[[ -d "$GCCDIR" ]] || {
-  echo "ERROR: could not determine GCC lib directory (got: $GCCDIR)"
-  exit 1
-}
-
-################################################################################
-# 5.  Expose compiler to scikit-build
-################################################################################
-ln -sf /usr/bin/ld "$GCCDIR/ld"          # use Apple’s system ld
-export PATH="$PREFIX/bin:$PATH"
-
-# At this point:
-#  - native job: FC="$PREFIX/bin/gfortran"
-#  - cross  job: FC="$PREFIX/bin/gfortran-arm64"
-
-# Make sure CMake invokes our chosen driver
-sudo ln -sf "$FC" /usr/local/bin/gfortran
-echo "FC=$FC" >> "$GITHUB_ENV"
-
-# LDFLAGS must exist even in the native job
-LDFLAGS="-Wl,-syslibroot,$SDKROOT"
-if [[ "$type" == "cross" ]]; then
-  LDFLAGS+=" -L$GCCDIR -Wl,-rpath,$GCCDIR"
-else
-  sudo cp "$PREFIX"/lib/lib{gfortran*,quadmath*,gcc_s*}.dylib /usr/local/lib/
-fi
-export LDFLAGS
-echo "LDFLAGS=$LDFLAGS" >> "$GITHUB_ENV"
-
-# hand back to later GitHub Actions steps
-echo "CMAKE_OSX_ARCHITECTURES=$PLAT" >> "$GITHUB_ENV"
-if [[ "$type" == "cross" ]]; then
-  echo "CMAKE_SYSTEM_PROCESSOR=$PLAT" >> "$GITHUB_ENV"   # arm64
-fi
-
-# ────────────────────────────────────────────────────────────────────────────
-# Record SDK path for cibuildwheel's build phase
-# (the variable CIBW_ENVIRONMENT_OUTPUT_PATH exists only in >= 2.18;
-# guard with -n to stay compatible with older releases)
-# ────────────────────────────────────────────────────────────────────────────
-if [[ -n "${CIBW_ENVIRONMENT_OUTPUT_PATH:-}" ]]; then
-  {
-    echo "FC=$FC"
-    echo "LDFLAGS=$LDFLAGS"  
-    echo "SDKROOT=$SDKROOT"
-    echo "CMAKE_OSX_SYSROOT=$SDKROOT"
-  } >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
-fi
-
-################################################################################
-# 6.  Sanity check
-################################################################################
-echo "### sanity check"
-echo "FC      = $FC"
-echo "LDFLAGS = ${LDFLAGS:-<none>}"
-
-"$FC" -v | head -n 1 || { echo "gfortran failed to start"; exit 99; }
+# Export compiler & flags
+PREFIX="/opt/gfortran-darwin-arm64-cross"
+export FC="$PREFIX/bin/gfortran-universal"
+export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+echo "FC=$FC" >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
+echo "LDFLAGS=$LDFLAGS" >> "$CIBW_ENVIRONMENT_OUTPUT_PATH"
