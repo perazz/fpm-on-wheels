@@ -44,13 +44,11 @@ function _update_config_sub {
   pushd "$src_dir" >/dev/null
 
   # Download newest autotools helper scripts
-  curl -fsSL \
-    https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub \
-    -o build-aux/config.sub
-  curl -fsSL \
-    https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess \
-    -o build-aux/config.guess
-
+  curl -fsSL https://git.savannah.gnu.org/git/config.git/plain/config.sub   \
+    -o gcc-${GCC_VERSION}/build-aux/config.sub
+  curl -fsSL https://git.savannah.gnu.org/git/config.git/plain/config.guess \
+    -o gcc-${GCC_VERSION}/build-aux/config.guess    
+    
   # Propagate to all subdirectories
   find . -name config.sub   -exec cp build-aux/config.sub   {} \;
   find . -name config.guess -exec cp build-aux/config.guess {} \;

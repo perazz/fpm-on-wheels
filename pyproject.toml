@@ -1,12 +1,13 @@
 [build-system]
 requires = [
-  "setuptools>=67.0.0",
-  "scikit-build>=0.16.7",
-  "cmake>=3.20.0",
-  "ninja",
+  # scikit-build-core drives CMake + Ninja
+  "scikit-build-core>=0.9.3",
+  # used only at sdist-time, writes src/fpm/_version.py
   "setuptools_scm>=8",
+  "cmake>=3.25",
+  "ninja"
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "fpm"
@@ -38,14 +39,21 @@ bug-tracker = "https://github.com/fortran-lang/fpm/issues"
 write_to = "src/fpm/_version.py"
 
 [tool.cibuildwheel]
-build = "cp312-*"
+build = "cp39-* cp310-* cp311-* cp312-*"
 build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-before-build = "bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
-environment = { CC = "clang", CXX = "clang++", MACOSX_DEPLOYMENT_TARGET = "11.0" }
+before-build = "bash {project}/tools/wheels/install_gfortran_conda.sh"
+environment = { CC = "clang", CXX = "clang++", FC = "gfortran", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
-[tool.cibuildwheel.windows]
-archs = ["auto64"]
-environment = { CC = "gcc", CXX = "g++", FC = "gfortran" }
+#[tool.cibuildwheel.windows]
+#archs = ["auto64"]
+#environment = { CC = "gcc", CXX = "g++", FC = "gfortran" }
+
+# --- Linux ---------------------------------------------------------------
+# 100 % pure; no special tool-chain needed
+
+# --- Windows -------------------------------------------------------------
+# FPM is a CLI; skip Windows for now (re-enable when a working gfortran exists)
+skip = "*-win_*"
