@@ -22,29 +22,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install gfortran via Homebrew
+      - name: Set up Fortran compiler (macOS)
         if: runner.os == 'macos'
-        run: |
-          brew install gcc
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH          
-
-      - name: Add Homebrew gfortran to PATH
-        if: runner.os == 'macos'
-        run: |
-          for prefix in /usr/local /opt/homebrew; do
-            if [ -d "$prefix/bin" ]; then
-              gfortran_path=$(find "$prefix/bin" -type f -name 'gfortran-[0-9]*' | sort -V | tail -n 1)
-              if [ -n "$gfortran_path" ]; then
-                echo "Found gfortran: $gfortran_path"
-                ln -sf "$gfortran_path" "$prefix/bin/gfortran"
-                echo "$prefix/bin" >> $GITHUB_PATH
-                exit 0
-              fi
-            fi
-          done
-
-          echo "::error ::No Homebrew gfortran-[0-9]* found in known paths"
-          exit 1
+        uses: fortran-lang/setup-fortran@v1.6.3
+        with:
+          compiler: gcc
+          version: 13
                   
       - if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
