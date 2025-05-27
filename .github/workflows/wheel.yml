@@ -22,22 +22,31 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install gfortran from conda-forge
+      - name: Install gfortran via Homebrew
         if: runner.os == 'macos'
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-name: fpm-build
-          create-args: >-
-            gfortran_impl_osx-64=14.2.0
-            libgfortran5=14.2.0
-            compiler-rt
-          cache-downloads: true
-          init-shell: bash  
+        run: |
+          brew install gcc
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH          
 
-      - name: Add gfortran to PATH
+      - name: Add Homebrew gfortran to PATH
         if: runner.os == 'macos'
-        run: echo "$HOME/micromamba/envs/fpm-build/bin" >> $GITHUB_PATH
-          
+        run: |
+          brew_prefix=$(brew --prefix)
+          gfortran_path=$(find "$brew_prefix/bin" -type f -name 'gfortran-*' | sort -V | tail -n 1)
+
+          if [ -z "$gfortran_path" ]; then
+            echo "::error ::No gfortran-* found in $brew_prefix/bin"
+            exit 1
+          fi
+
+          echo "Found gfortran: $gfortran_path"
+
+          # Create a symlink as gfortran -> gfortran-13 (etc.)
+          ln -sf "$gfortran_path" "$brew_prefix/bin/gfortran"
+
+          # Ensure the path is picked up by subsequent steps
+          echo "$brew_prefix/bin" >> $GITHUB_PATH
+                  
       - if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
