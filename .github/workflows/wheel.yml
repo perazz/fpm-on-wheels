@@ -31,7 +31,7 @@ jobs:
             gfortran_impl_osx-64=14.2.0
             libgfortran5=14.2.0
           cache-downloads: true
-          init-shell: bash  # ensure the env activates correctly
+          init-shell: bash  
 
       - name: Add gfortran to PATH
         if: runner.os == 'macos'

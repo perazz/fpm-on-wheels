@@ -46,7 +46,7 @@ build-verbosity = "3"
 archs = ["universal2"]
 environment = { CC = "clang", CXX = "clang++", FC = "gfortran", MACOSX_DEPLOYMENT_TARGET = "11.0", CONDA_DEFAULT_ENV = "base"}
 
-#[tool.cibuildwheel.windows]
+[tool.cibuildwheel.windows]
 archs = ["auto64"]
 environment = { CC = "gcc", CXX = "g++", FC = "gfortran" }
 
