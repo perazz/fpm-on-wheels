@@ -44,7 +44,7 @@ build-verbosity = "3"
 
 [tool.cibuildwheel.macos]
 archs = ["universal2"]
-environment = { CC = "clang", CXX = "clang++", FC = "gfortran", MACOSX_DEPLOYMENT_TARGET = "11.0", CONDA_DEFAULT_ENV = "base", LDFLAGS = "-Wl,-syslibroot=$(xcrun --show-sdk-path)"}
+environment = { CC = "clang", CXX = "clang++", FC = "gfortran", MACOSX_DEPLOYMENT_TARGET = "11.0", CONDA_DEFAULT_ENV = "base"}
 
 [tool.cibuildwheel.windows]
 archs = ["auto64"]
