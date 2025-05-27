@@ -22,6 +22,21 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install gfortran from conda-forge
+        if: runner.os == 'macos'
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: fpm-build
+          create-args: >-
+            gfortran_impl_osx-64=14.2.0
+            libgfortran5=14.2.0
+          cache-downloads: true
+          init-shell: bash  # ensure the env activates correctly
+
+      - name: Add gfortran to PATH
+        if: runner.os == 'macos'
+        run: echo "$HOME/micromamba/envs/fpm-build/bin" >> $GITHUB_PATH
+          
       - if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
